@@ -1,0 +1,17 @@
+# Secrets — never commit
+speech-to-speech-backend/.env
+**/.env
+**/.env.local
+
+# Windows Explorer folder metadata
+desktop.ini
+
+# Python
+speech-to-speech-backend/__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+
+# Node (frontend has its own .gitignore too, but this covers it
+# at the repo root regardless of where node_modules ends up)
+node_modules/

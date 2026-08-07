@@ -1,0 +1,15 @@
+# torch and torchaudio are intentionally NOT listed here — they're installed
+# in the Dockerfile from the CPU-only wheel index, which is much smaller
+# than the default (CUDA-bundled) build and is all a free CPU host needs.
+fastapi>=0.115.12
+uvicorn>=0.34.2
+python-multipart>=0.0.20
+python-dotenv>=1.0.1
+assemblyai>=0.40.2
+translators>=5.9.9
+outetts==0.2.3
+uroman
+transformers==4.47.1
+inflect
+huggingface_hub
+soundfile

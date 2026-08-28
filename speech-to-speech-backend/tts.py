@@ -4,7 +4,6 @@ import os
 import sys
 
 import soundfile as sf
-import torch
 from transformers import AutoModelForCausalLM
 
 # yarngpt isn't on PyPI — it's vendored into the image by the Dockerfile
@@ -22,7 +21,7 @@ WAV_TOKENIZER_CONFIG_PATH = os.getenv(
     "WAV_TOKENIZER_CONFIG_PATH", "/app/assets/wavtokenizer_config.yaml"
 )
 WAV_TOKENIZER_MODEL_PATH = os.getenv(
-    "WAV_TOKENIZER_MODEL_PATH", "/app/assets/wavtokenizer_large_speech_320_v2.ckpt"
+    "WAV_TOKENIZER_MODEL_PATH", "/app/assets/wavtokenizer_large_speech_320_24k.ckpt"
 )
 
 _audio_tokenizer = None
@@ -36,9 +35,9 @@ def load_tts():
         _audio_tokenizer = AudioTokenizerForLocal(
             HF_PATH, WAV_TOKENIZER_MODEL_PATH, WAV_TOKENIZER_CONFIG_PATH
         )
-        _model = AutoModelForCausalLM.from_pretrained(
-            HF_PATH, torch_dtype="auto"
-        ).to(_audio_tokenizer.device)
+        _model = AutoModelForCausalLM.from_pretrained(HF_PATH, torch_dtype="auto").to(
+            _audio_tokenizer.device
+        )
     return _audio_tokenizer, _model
 
 
@@ -54,9 +53,19 @@ def synthesize_igbo(text: str) -> str:
     prompt = audio_tokenizer.create_prompt(text, "igbo", "igbo_male2")
     input_ids = audio_tokenizer.tokenize_prompt(prompt)
 
-    # num_beams=4 (the original script's setting) measured ~108s end-to-end,
-    # num_beams=2 ~57s. Settled on num_beams=1 (greedy decoding, ~46s) —
-    # fastest option and sounded fine on comparison.
+    # num_beams=4 (matching the original proven-working Kaggle script) was
+    # used to confirm the checkpoint fix in isolation — that's now confirmed
+    # correct on the user's own PC playback. num_beams=4 measured ~60-110s
+    # per request, which was reported as painfully slow on-device. Re-tuning
+    # to num_beams=1 now, on top of the CORRECT checkpoint this time (past
+    # num_beams=1 timing numbers were measured against the broken checkpoint
+    # and aren't trustworthy for correctness).
+    # max_length=8192 is the model's actual ceiling (its own config.json
+    # declares max_position_embeddings=8192) — not a tunable knob, the hard
+    # limit on how many combined input+generated tokens it can handle at
+    # all. A lower value (e.g. 4000) can truncate generation early for
+    # longer input sentences, since the input prompt's tokens eat into the
+    # same budget as the generated audio codes.
     output = model.generate(
         input_ids=input_ids,
         temperature=0.1,

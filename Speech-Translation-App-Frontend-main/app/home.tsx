@@ -22,8 +22,10 @@ export default function Home() {
     outputText,
     isSaving,
     savedUri,
+    canReplay,
     startRecording,
-    stopRecording
+    stopRecording,
+    replayAudio
   } = useAudioRecorder()
 
   const handlePressIn = () => {
@@ -82,13 +84,25 @@ export default function Home() {
       <Text style={styles.infoText}>
         {status != "waiting" ? `${status}...` : ""}
       </Text>
+      {/* The backend only ever returns the Igbo translation, not the
+          English transcript, so there's nothing to show for a separate
+          "Transcribed Text" state. Shown persistently (not just during
+          "synthesising") so it stays readable after playback ends. */}
       <Text style={styles.infoTextLower}>
-        {status == "translating"
-          ? `Transcribed Text: ${outputText}`
-          : status == "synthesising"
-            ? `Translated Igbo: ${outputText}`
-            : ""}
+        {outputText ? `Translated Igbo: ${outputText}` : ""}
       </Text>
+
+      {canReplay && (
+        <TouchableOpacity
+          style={styles.replayButton}
+          onPress={replayAudio}
+          disabled={isRecording || isSaving}
+          accessibilityLabel="Replay translated audio"
+          accessibilityRole="button"
+        >
+          <Text style={styles.replayButtonText}>Replay</Text>
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
@@ -121,6 +135,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
     paddingHorizontal: 10
+  },
+  replayButton: {
+    marginTop: 24,
+    backgroundColor: "#2ecc71",
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 24
+  },
+  replayButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+    textAlign: "center"
   },
   uriText: {
     marginTop: 24,

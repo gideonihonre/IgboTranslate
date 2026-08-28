@@ -152,11 +152,14 @@ Docker (image tag `s2s`), listening on port 7860.
     `HF_PATH` (defaults to the public `saheedniyi/YarnGPT-local`).
 - `synthesize_igbo(text)`: builds a YarnGPT prompt tagged for Igbo with a
   specific voice (`"igbo_male2"`), tokenizes it, runs the language model's
-  `.generate(...)` (beam search, `num_beams=4` — this is the slowest part of
-  the whole pipeline on CPU-only hosting), decodes the output tokens back
-  into a raw waveform via the vocoder, and encodes that waveform as a WAV
-  file in memory (`soundfile`), then returns it as a base64 string (so the
-  existing RN playback code, which expects base64, needs no changes).
+  `.generate(...)` (beam search, `num_beams=4` — matches the original
+  proven-working script exactly and is the slowest part of the pipeline on
+  CPU-only hosting; not yet re-tuned for speed since this exact setting was
+  needed to confirm audio correctness — see `Handoff.md`), decodes the
+  output tokens back into a raw waveform via the vocoder, and encodes that
+  waveform as a WAV file in memory (`soundfile`), then returns it as a
+  base64 string (so the existing RN playback code, which expects base64,
+  needs no changes).
 
 ### `Dockerfile` — how the image is built
 - Base: `python:3.11-slim`.
@@ -169,8 +172,12 @@ Docker (image tag `s2s`), listening on port 7860.
   index (much smaller than the default CUDA-bundled build — this is a
   CPU-only deployment target).
 - Clones YarnGPT's source, installs `requirements.txt`, downloads the
-  WavTokenizer config + checkpoint from Hugging Face straight into the
-  image (baked in at build time, not downloaded per-container-start).
+  WavTokenizer config from Hugging Face and the checkpoint from a Google
+  Drive mirror via `gdown` (the original checkpoint file was deleted from
+  Hugging Face — see `Handoff.md`'s "The big bug" section for why this
+  specific checkpoint matters and what happens if it's swapped for a
+  Hugging-Face-hosted substitute), both baked into the image at build time,
+  not downloaded per-container-start.
 - Exposes port 7860 (Hugging Face Spaces' expected default) and runs
   `uvicorn main:app`.
 

@@ -33,14 +33,27 @@ COPY requirements.txt .
 # slow/flaky link that needs more slack per chunk and more attempts.
 RUN pip install --no-cache-dir --timeout 120 --retries 10 -r requirements.txt
 
-# WavTokenizer config + weights, baked into the image at build time from
-# their official Hugging Face URLs (stable — unlike a personal Google Drive
-# link, this won't hit download-quota or permission errors on rebuild).
-RUN mkdir -p /app/assets && \
+# WavTokenizer config from its official Hugging Face URL (unchanged, still
+# the medium repo's config — that part was never the problem).
+#
+# The CHECKPOINT is the one that matters. The original, proven-working setup
+# (a Kaggle notebook that hosted /generate behind ngrok before this project
+# existed) paired this medium config with wavtokenizer_large_speech_320_24k.ckpt
+# — no "_v2" suffix. novateur has since deleted that exact file from Hugging
+# Face; every substitute tried since (large-repo _v2, then medium-repo
+# _24k_v2) produced consistently pitch-shifted/"chipmunk" audio regardless of
+# which one, or of any decoding-parameter change — because neither is
+# actually the checkpoint the config was built against, a "_v2" being a
+# later, unrelated retrain rather than a re-upload of the same weights. The
+# original Kaggle notebook also didn't get this file from Hugging Face — it
+# pulled a personal Google Drive mirror via `gdown`, which is still live, so
+# this does the same.
+RUN pip install --no-cache-dir gdown && \
+    mkdir -p /app/assets && \
     wget -q -O /app/assets/wavtokenizer_config.yaml \
       https://huggingface.co/novateur/WavTokenizer-medium-speech-75token/resolve/main/wavtokenizer_mediumdata_frame75_3s_nq1_code4096_dim512_kmeans200_attn.yaml && \
-    wget -q -O /app/assets/wavtokenizer_large_speech_320_v2.ckpt \
-      https://huggingface.co/novateur/WavTokenizer-large-speech-75token/resolve/main/wavtokenizer_large_speech_320_v2.ckpt
+    gdown 1-ASeEkrn4HY49yZWHTASgfGFNXdVnLTt \
+      -O /app/assets/wavtokenizer_large_speech_320_24k.ckpt
 
 COPY . .
 
